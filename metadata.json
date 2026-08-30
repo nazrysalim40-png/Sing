@@ -1,0 +1,6 @@
+{
+  "name": "Song Release",
+  "description": "Music release management studio for artists and producers to coordinate metadata, checklists, split sheets, distributor delivery, campaigns, and drop day.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
