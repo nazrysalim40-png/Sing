@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,10 +29,12 @@ import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -61,6 +64,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.model.ChecklistCategory
 import com.example.data.model.ReleaseChecklistItem
@@ -69,8 +73,13 @@ import com.example.ui.components.AudioWaveformBar
 import com.example.ui.components.NewReleaseDialog
 import com.example.ui.components.ReadinessGauge
 import com.example.ui.components.ReleaseCountdownCard
+import com.example.ui.components.ReleaseStagesProgressTracker
 import com.example.ui.theme.AmberWarning
+import com.example.ui.theme.BrandOrange
+import com.example.ui.theme.BrandOrangeDark
+import com.example.ui.theme.BrandOrangeLight
 import com.example.ui.theme.ElectricViolet
+import com.example.ui.theme.ElectricVioletLight
 import com.example.ui.theme.HyperCyan
 import com.example.ui.theme.MintGreen
 import com.example.ui.theme.NeonPink
@@ -98,6 +107,7 @@ fun DashboardScreen(
     onNavigateToSongs: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val isLightMood by viewModel.isLightMood.collectAsStateWithLifecycle()
     var showNewReleaseDialog by remember { mutableStateOf(false) }
 
     if (showNewReleaseDialog) {
@@ -148,23 +158,60 @@ fun DashboardScreen(
                     )
                 }
 
-                Button(
-                    onClick = { showNewReleaseDialog = true },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ElectricViolet,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    modifier = Modifier.testTag("button_new_release")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "New Release",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("New Drop", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Quick Light Mood / Studio Dark Mode Switcher
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isLightMood) BrandOrange.copy(alpha = 0.12f) else BrandOrange.copy(alpha = 0.2f),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isLightMood) BrandOrange.copy(alpha = 0.4f) else BrandOrange.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { viewModel.toggleLightMood() }
+                            .testTag("button_toggle_light_mood")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (isLightMood) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                contentDescription = if (isLightMood) "Switch to Dark Mood" else "Switch to Light Mood",
+                                tint = if (isLightMood) BrandOrange else BrandOrangeLight,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = if (isLightMood) "Orange/White Light" else "Orange/White Dark",
+                                color = if (isLightMood) BrandOrangeDark else BrandOrangeLight,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = { showNewReleaseDialog = true },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ElectricViolet,
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        modifier = Modifier.testTag("button_new_release")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "New Release",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("New Drop", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
@@ -181,6 +228,7 @@ fun DashboardScreen(
                         val coverRes = when (rel.coverArtPreset) {
                             "acoustic" -> R.drawable.img_release_cover_acoustic
                             "studio" -> R.drawable.img_studio_hero
+                            "light" -> R.drawable.img_release_cover_light
                             else -> R.drawable.img_release_cover_neon
                         }
 
@@ -336,13 +384,24 @@ fun DashboardScreen(
                 Spacer(modifier = Modifier.height(14.dp))
             }
 
-            // 3. Drop Readiness Gauge
+            // 3. Music Release Stages Progress Tracker (Visual Chart & Pipeline)
+            item {
+                ReleaseStagesProgressTracker(
+                    release = currentRelease,
+                    checklist = checklist,
+                    onToggleTask = { task -> viewModel.toggleChecklistItem(task) },
+                    onNavigateToChecklist = onNavigateToChecklist
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+            }
+
+            // 4. Drop Readiness Gauge
             item {
                 ReadinessGauge(stats = stats, checklist = checklist)
                 Spacer(modifier = Modifier.height(14.dp))
             }
 
-            // 4. Audio Specs & Waveform
+            // 5. Audio Specs & Waveform
             item {
                 AudioWaveformBar(release = currentRelease)
                 Spacer(modifier = Modifier.height(14.dp))

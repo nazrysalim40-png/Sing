@@ -29,4 +29,10 @@ data class Song(
     val releaseId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
-)
+) {
+    /**
+     * Returns the selected genres as a cleaned list.
+     */
+    val genreList: List<String>
+        get() = if (genre.isBlank()) emptyList() else genre.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+}

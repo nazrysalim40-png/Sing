@@ -49,7 +49,9 @@ import com.example.ui.screens.DropDayLiveScreen
 import com.example.ui.screens.MarketingLaunchpadScreen
 import com.example.ui.screens.MetadataAndSplitsScreen
 import com.example.ui.screens.SavedSongsScreen
+import com.example.ui.theme.AppTheme
 import com.example.ui.theme.ElectricViolet
+import com.example.ui.theme.ElectricVioletDark
 import com.example.ui.theme.HyperCyan
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.StudioBackground
@@ -77,7 +79,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            val isLightMood by viewModel.isLightMood.collectAsStateWithLifecycle()
+            MyApplicationTheme(darkTheme = !isLightMood) {
                 MainAppContent(viewModel = viewModel)
             }
         }
@@ -87,6 +90,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainAppContent(viewModel: SongReleaseViewModel) {
     var currentTab by remember { mutableStateOf(MainNavTab.LAUNCHPAD) }
+    val colors = AppTheme.colors
 
     val allReleases by viewModel.allReleases.collectAsStateWithLifecycle()
     val currentRelease by viewModel.currentRelease.collectAsStateWithLifecycle()
@@ -99,14 +103,14 @@ fun MainAppContent(viewModel: SongReleaseViewModel) {
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .background(StudioBackground),
-        containerColor = StudioBackground,
+            .background(colors.background),
+        containerColor = colors.background,
         bottomBar = {
             NavigationBar(
-                containerColor = StudioSurface,
+                containerColor = colors.surface,
                 tonalElevation = 8.dp,
                 modifier = Modifier
-                    .border(1.dp, StudioBorder)
+                    .border(1.dp, colors.border)
                     .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
                 MainNavTab.values().forEach { tab ->
@@ -130,10 +134,10 @@ fun MainAppContent(viewModel: SongReleaseViewModel) {
                         },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = ElectricViolet,
-                            selectedTextColor = HyperCyan,
-                            indicatorColor = ElectricViolet.copy(alpha = 0.2f),
-                            unselectedIconColor = TextMuted,
-                            unselectedTextColor = TextMuted
+                            selectedTextColor = if (colors.isLight) ElectricVioletDark else HyperCyan,
+                            indicatorColor = ElectricViolet.copy(alpha = if (colors.isLight) 0.15f else 0.2f),
+                            unselectedIconColor = colors.textMuted,
+                            unselectedTextColor = colors.textMuted
                         ),
                         modifier = Modifier.testTag(tab.tag)
                     )

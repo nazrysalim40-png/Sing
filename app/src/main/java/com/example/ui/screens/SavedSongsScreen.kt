@@ -547,6 +547,7 @@ fun SavedSongsScreen(
                     val coverRes = when (song.coverArtPreset) {
                         "acoustic" -> R.drawable.img_release_cover_acoustic
                         "studio" -> R.drawable.img_studio_hero
+                        "light" -> R.drawable.img_release_cover_light
                         else -> R.drawable.img_release_cover_neon
                     }
 
@@ -738,9 +739,9 @@ fun SavedSongsScreen(
 
                                         Column(modifier = Modifier.weight(1f)) {
                                             MetadataSpecRow(label = "Distributor", value = song.distributor)
+                                            MetadataSpecRow(label = "Genres", value = song.genre)
                                             MetadataSpecRow(label = "Sub-Genre", value = song.subGenre)
                                             MetadataSpecRow(label = "Explicit", value = if (song.explicitLyrics) "Yes (Explicit)" else "Clean (Safe)")
-                                            MetadataSpecRow(label = "Room Record ID", value = "#${song.id}")
                                         }
                                     }
 

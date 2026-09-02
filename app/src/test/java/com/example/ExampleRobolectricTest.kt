@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.database.SongReleaseDatabase
 import com.example.data.model.Song
+import com.example.data.model.SongRelease
 import com.example.data.model.SongWriterSplit
 import com.example.data.repository.SongReleaseRepository
 import com.example.ui.components.TrackMetadataFormData
@@ -353,5 +354,47 @@ class ExampleRobolectricTest {
 
     val total2026 = monthCounts.sum()
     assertEquals(4, total2026)
+  }
+
+  @Test
+  fun `multi-genre categorizes release properly in Room and parses list`() = runBlocking {
+    val multiGenreRelease = SongRelease(
+      title = "Cyber Neon Nights",
+      artistName = "Astraea",
+      genre = "Electronic, Synthwave, Indie Pop",
+      subGenre = "Retrowave",
+      bpm = 124,
+      musicalKey = "F# Minor",
+      distributor = "DistroKid"
+    )
+
+    val id = database.songReleaseDao().insertRelease(multiGenreRelease)
+    assertTrue(id > 0)
+
+    val fetched = repository.getReleaseById(id).first()
+    assertNotNull(fetched)
+    assertEquals("Electronic, Synthwave, Indie Pop", fetched?.genre)
+    val genres = fetched?.genreList
+    assertNotNull(genres)
+    assertEquals(3, genres?.size)
+    assertTrue(genres?.contains("Electronic") == true)
+    assertTrue(genres?.contains("Synthwave") == true)
+    assertTrue(genres?.contains("Indie Pop") == true)
+  }
+
+  @Test
+  fun `song release with light mood cover art preset persists and retrieves correctly`() = runBlocking {
+    val lightRelease = SongRelease(
+      title = "Summer Sunburst",
+      artistName = "Solara",
+      genre = "Indie Pop",
+      coverArtPreset = "light"
+    )
+
+    val id = database.songReleaseDao().insertRelease(lightRelease)
+    val fetched = repository.getReleaseById(id).first()
+    assertNotNull(fetched)
+    assertEquals("light", fetched?.coverArtPreset)
+    assertEquals("Summer Sunburst", fetched?.title)
   }
 }

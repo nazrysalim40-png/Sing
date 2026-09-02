@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -17,21 +18,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -60,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +76,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.SongWriterSplit
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.ElectricViolet
@@ -81,6 +91,7 @@ import com.example.ui.theme.StudioSurfaceHover
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import com.example.util.MetadataExportUtils
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -118,18 +129,21 @@ val PopularPros = listOf(
 )
 
 /**
- * Specialized, comprehensive Data Entry Form for Song Split Sheets.
- * Allows users to input collaborators, specify roles, copyright/royalty percentages,
- * PRO affiliations, IPI numbers, and publishers with real-time balance calculations.
+ * Specialized Split Sheet Generator and Entry Form.
+ * Allows users to input collaborators, specify contribution percentages, contact details
+ * (email, phone number), and PRO/publishing details, with live allocation tracking and export.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SongSplitSheetForm(
+    songTitle: String = "Untitled Track",
+    artistName: String = "Artist",
     initialSplits: List<SongWriterSplit> = emptyList(),
     onSaveSplits: (List<SongWriterSplit>) -> Unit,
     onExportClicked: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val splitsList = remember(initialSplits) {
         mutableStateListOf<SongWriterSplit>().apply {
             if (initialSplits.isNotEmpty()) addAll(initialSplits)
@@ -141,9 +155,14 @@ fun SongSplitSheetForm(
     var collaboratorName by remember { mutableStateOf("") }
     var selectedRole by remember { mutableStateOf("Songwriter / Lyricist") }
     var splitPercentageText by remember { mutableStateOf("50.0") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     var proAffiliation by remember { mutableStateOf("ASCAP") }
     var ipiNumber by remember { mutableStateOf("") }
     var publisherName by remember { mutableStateOf("") }
+
+    // Dialog preview state
+    var showQuickDocPreview by remember { mutableStateOf(false) }
 
     // Validation & calculations
     val totalPercentage = splitsList.sumOf { it.percentage }
@@ -162,6 +181,8 @@ fun SongSplitSheetForm(
         collaboratorName = ""
         selectedRole = "Songwriter / Lyricist"
         splitPercentageText = if (remainingPercentage > 0) "%.1f".format(remainingPercentage) else "25.0"
+        email = ""
+        phone = ""
         proAffiliation = "ASCAP"
         ipiNumber = ""
         publisherName = ""
@@ -173,6 +194,8 @@ fun SongSplitSheetForm(
         collaboratorName = target.contributorName
         selectedRole = target.role
         splitPercentageText = "%.1f".format(target.percentage)
+        email = target.email
+        phone = target.phone
         proAffiliation = target.proAffiliation.ifBlank { "ASCAP" }
         ipiNumber = target.ipiNumber
         publisherName = target.publisher
@@ -184,6 +207,8 @@ fun SongSplitSheetForm(
             contributorName = collaboratorName.trim(),
             role = selectedRole.trim(),
             percentage = currentInputPct,
+            email = email.trim(),
+            phone = phone.trim(),
             proAffiliation = proAffiliation.trim(),
             ipiNumber = ipiNumber.trim(),
             publisher = publisherName.trim()
@@ -249,7 +274,7 @@ fun SongSplitSheetForm(
                             letterSpacing = 1.2.sp
                         )
                         Text(
-                            text = "Song Split Sheet Form",
+                            text = "Split Sheet Generator",
                             color = TextPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
@@ -257,22 +282,41 @@ fun SongSplitSheetForm(
                     }
                 }
 
-                if (onExportClicked != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(
-                        onClick = onExportClicked,
+                        onClick = { showQuickDocPreview = true },
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = HyperCyan),
                         border = BorderStroke(1.dp, HyperCyan.copy(alpha = 0.5f)),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("button_export_split_sheet")
+                        modifier = Modifier.testTag("button_generate_split_sheet_doc")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Export Split Sheet",
+                            imageVector = Icons.Default.Description,
+                            contentDescription = "Generate Split Sheet Document",
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Export Sheet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Doc View", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (onExportClicked != null) {
+                        OutlinedButton(
+                            onClick = onExportClicked,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = ElectricViolet),
+                            border = BorderStroke(1.dp, ElectricViolet.copy(alpha = 0.5f)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            modifier = Modifier.testTag("button_export_split_sheet")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Export Split Sheet",
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Export", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -484,9 +528,9 @@ fun SongSplitSheetForm(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 2. Collaborators List
+            // 2. Organized Collaborators List
             Text(
-                text = "COLLABORATORS & SPLIT BREAKDOWN (${splitsList.size})",
+                text = "COLLABORATORS & CONTRIBUTION BREAKDOWN (${splitsList.size})",
                 color = TextMuted,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -521,7 +565,7 @@ fun SongSplitSheetForm(
                             fontSize = 14.sp
                         )
                         Text(
-                            text = "Use the entry form below to add songwriters, producers, and publishers.",
+                            text = "Use the entry form below to add collaborators, contribution percentages, and contact details.",
                             color = TextSecondary,
                             fontSize = 12.sp
                         )
@@ -546,116 +590,190 @@ fun SongSplitSheetForm(
                             .padding(vertical = 4.dp)
                             .testTag("card_collaborator_$index")
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(12.dp)
                         ) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Initials Avatar
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(color.copy(alpha = 0.25f)),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    val initials = split.contributorName
-                                        .split(" ")
-                                        .filter { it.isNotBlank() }
-                                        .mapNotNull { it.firstOrNull() }
-                                        .take(2)
-                                        .joinToString("")
-                                        .uppercase()
-                                        .ifBlank { "C" }
+                                    // Initials Avatar
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(color.copy(alpha = 0.25f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val initials = split.contributorName
+                                            .split(" ")
+                                            .filter { it.isNotBlank() }
+                                            .mapNotNull { it.firstOrNull() }
+                                            .take(2)
+                                            .joinToString("")
+                                            .uppercase()
+                                            .ifBlank { "C" }
 
-                                    Text(
-                                        text = initials,
-                                        color = color,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp
-                                    )
+                                        Text(
+                                            text = initials,
+                                            color = color,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(10.dp))
+
+                                    Column {
+                                        Text(
+                                            text = split.contributorName,
+                                            color = TextPrimary,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "${split.role} • ${split.proAffiliation}${if (split.ipiNumber.isNotBlank()) " (IPI: ${split.ipiNumber})" else ""}",
+                                            color = TextSecondary,
+                                            fontSize = 11.sp
+                                        )
+                                        if (split.publisher.isNotBlank()) {
+                                            Text(
+                                                text = "Pub: ${split.publisher}",
+                                                color = TextMuted,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
                                 }
 
-                                Spacer(modifier = Modifier.width(10.dp))
-
-                                Column {
-                                    Text(
-                                        text = split.contributorName,
-                                        color = TextPrimary,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "${split.role} • ${split.proAffiliation}${if (split.ipiNumber.isNotBlank()) " (IPI: ${split.ipiNumber})" else ""}",
-                                        color = TextSecondary,
-                                        fontSize = 11.sp
-                                    )
-                                    if (split.publisher.isNotBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    // Split % Chip
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = color.copy(alpha = 0.2f),
+                                        border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
+                                    ) {
                                         Text(
-                                            text = "Pub: ${split.publisher}",
-                                            color = TextMuted,
-                                            fontSize = 10.sp
+                                            text = "${"%.1f".format(split.percentage)}%",
+                                            color = color,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 14.sp,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+
+                                    // Quick Edit Button
+                                    IconButton(
+                                        onClick = {
+                                            if (isEditingThis) resetInputForm() else startEditingSplit(index)
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isEditingThis) Icons.Default.Close else Icons.Default.Edit,
+                                            contentDescription = "Edit Collaborator",
+                                            tint = if (isEditingThis) NeonPink else HyperCyan,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+
+                                    // Delete Button
+                                    IconButton(
+                                        onClick = {
+                                            if (editingSplitIndex == index) resetInputForm()
+                                            splitsList.removeAt(index)
+                                        },
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .testTag("button_delete_collaborator_$index")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete Collaborator",
+                                            tint = NeonPink.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
                             }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                // Split % Chip
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = color.copy(alpha = 0.2f),
-                                    border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
+                            // Contact Details Row (if provided)
+                            if (split.hasContactDetails) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = "${"%.1f".format(split.percentage)}%",
-                                        color = color,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 14.sp,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
+                                    if (split.email.isNotBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = StudioSurfaceCard,
+                                            border = BorderStroke(1.dp, StudioBorder),
+                                            modifier = Modifier.clickable {
+                                                MetadataExportUtils.copyToClipboard(context, "Email", split.email)
+                                            }
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Email,
+                                                    contentDescription = null,
+                                                    tint = HyperCyan,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = split.email,
+                                                    color = TextSecondary,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    }
 
-                                // Quick Edit Button
-                                IconButton(
-                                    onClick = {
-                                        if (isEditingThis) resetInputForm() else startEditingSplit(index)
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (isEditingThis) Icons.Default.Close else Icons.Default.Edit,
-                                        contentDescription = "Edit Collaborator",
-                                        tint = if (isEditingThis) NeonPink else HyperCyan,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-
-                                // Delete Button
-                                IconButton(
-                                    onClick = {
-                                        if (editingSplitIndex == index) resetInputForm()
-                                        splitsList.removeAt(index)
-                                    },
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .testTag("button_delete_collaborator_$index")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete Collaborator",
-                                        tint = NeonPink.copy(alpha = 0.8f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                    if (split.phone.isNotBlank()) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = StudioSurfaceCard,
+                                            border = BorderStroke(1.dp, StudioBorder),
+                                            modifier = Modifier.clickable {
+                                                MetadataExportUtils.copyToClipboard(context, "Phone", split.phone)
+                                            }
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Phone,
+                                                    contentDescription = null,
+                                                    tint = MintGreen,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = split.phone,
+                                                    color = TextSecondary,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -768,7 +886,7 @@ fun SongSplitSheetForm(
 
                     // Copyright & Royalty Split Percentage Input & Steppers
                     Text(
-                        text = "Copyright & Royalty Share (%) *",
+                        text = "Contribution / Royalty Share (%) *",
                         color = TextSecondary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
@@ -882,9 +1000,81 @@ fun SongSplitSheetForm(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    // PRO Affiliation & IPI Number
+                    // Contact Details Section
+                    Text(
+                        text = "CONTACT DETAILS (OPTIONAL)",
+                        color = HyperCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = { Text("Email Address") },
+                            placeholder = { Text("collab@artist.com") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = HyperCyan, modifier = Modifier.size(16.dp))
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = HyperCyan,
+                                unfocusedBorderColor = StudioBorder,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedContainerColor = StudioSurfaceCard,
+                                unfocusedContainerColor = StudioSurfaceCard
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("input_collaborator_email")
+                        )
+
+                        OutlinedTextField(
+                            value = phone,
+                            onValueChange = { phone = it },
+                            label = { Text("Phone Number") },
+                            placeholder = { Text("+1 555-0199") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Phone, contentDescription = null, tint = MintGreen, modifier = Modifier.size(16.dp))
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = HyperCyan,
+                                unfocusedBorderColor = StudioBorder,
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedContainerColor = StudioSurfaceCard,
+                                unfocusedContainerColor = StudioSurfaceCard
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("input_collaborator_phone")
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Rights & Organization: PRO Affiliation & IPI Number
+                    Text(
+                        text = "RIGHTS & PUBLISHING (OPTIONAL)",
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -938,7 +1128,7 @@ fun SongSplitSheetForm(
                     OutlinedTextField(
                         value = publisherName,
                         onValueChange = { publisherName = it },
-                        label = { Text("Publishing Company / Administrator (Optional)") },
+                        label = { Text("Publishing Company / Administrator") },
                         placeholder = { Text("e.g. Sony Music Pub / Kobalt / Self-Published") },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -1011,6 +1201,107 @@ fun SongSplitSheetForm(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
+            }
+        }
+    }
+
+    // Modal quick document preview dialog
+    if (showQuickDocPreview) {
+        val agreementDoc = remember(splitsList.toList(), songTitle, artistName) {
+            MetadataExportUtils.generateSplitSheetDocument(
+                songTitle = songTitle,
+                artistName = artistName,
+                splits = splitsList.toList()
+            )
+        }
+
+        Dialog(
+            onDismissRequest = { showQuickDocPreview = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = StudioSurfaceCard),
+                border = BorderStroke(1.dp, StudioBorder),
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(vertical = 24.dp)
+                    .testTag("dialog_quick_doc_preview")
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Article, contentDescription = null, tint = HyperCyan, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Split Sheet Agreement", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+
+                        IconButton(onClick = { showQuickDocPreview = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(320.dp)
+                            .verticalScroll(rememberScrollState())
+                            .background(StudioBackground, RoundedCornerShape(10.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = agreementDoc,
+                            color = TextPrimary,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                MetadataExportUtils.copyToClipboard(context, "Split Sheet Document", agreementDoc)
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = HyperCyan),
+                            border = BorderStroke(1.dp, HyperCyan.copy(alpha = 0.5f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copy Agreement", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                MetadataExportUtils.shareViaSystemSheet(
+                                    context = context,
+                                    content = agreementDoc,
+                                    subject = "$songTitle - Split Sheet Agreement"
+                                )
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ElectricViolet),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Share via App", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
         }
     }

@@ -63,6 +63,17 @@ class SongReleaseViewModel(application: Application) : AndroidViewModel(applicat
     private val _selectedReleaseId = MutableStateFlow<Long?>(null)
     val selectedReleaseId: StateFlow<Long?> = _selectedReleaseId.asStateFlow()
 
+    private val _isLightMood = MutableStateFlow(true)
+    val isLightMood: StateFlow<Boolean> = _isLightMood.asStateFlow()
+
+    fun toggleLightMood() {
+        _isLightMood.value = !_isLightMood.value
+    }
+
+    fun setLightMood(enabled: Boolean) {
+        _isLightMood.value = enabled
+    }
+
     private val _selectedChecklistCategory = MutableStateFlow<ChecklistCategory?>(null)
     val selectedChecklistCategory: StateFlow<ChecklistCategory?> = _selectedChecklistCategory.asStateFlow()
 

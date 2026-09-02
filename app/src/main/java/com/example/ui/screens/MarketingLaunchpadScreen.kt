@@ -63,6 +63,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.model.PromoCampaignTask
 import com.example.data.model.SongRelease
 import com.example.data.model.SongWriterSplit
+import com.example.ui.components.ArtistPressKitModule
 import com.example.ui.components.PressKitGeneratorDialog
 import com.example.ui.components.SmartLinkPreviewCard
 import com.example.ui.theme.AmberWarning
@@ -172,7 +173,16 @@ fun MarketingLaunchpadScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // 2. Promo Budget & Spend Tracker
+            // 2. Artist Press Kit (EPK) Module with Biography, Socials & Hi-Res Artwork Placeholder
+            item {
+                ArtistPressKitModule(
+                    release = currentRelease,
+                    splits = splits
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // 3. Promo Budget & Spend Tracker
             item {
                 Card(
                     shape = RoundedCornerShape(20.dp),

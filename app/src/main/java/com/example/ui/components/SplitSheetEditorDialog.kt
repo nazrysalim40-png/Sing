@@ -23,30 +23,18 @@ import com.example.ui.theme.StudioSurfaceCard
  */
 @Composable
 fun SplitSheetEditorDialog(
+    songTitle: String = "Untitled Track",
+    artistName: String = "Artist",
     splits: List<SongWriterSplit>,
     onSaveSplits: (List<SongWriterSplit>) -> Unit,
     onExportClicked: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(vertical = 24.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            SongSplitSheetForm(
-                initialSplits = splits,
-                onSaveSplits = { updatedList ->
-                    onSaveSplits(updatedList)
-                    onDismiss()
-                },
-                onExportClicked = onExportClicked,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
+    SplitSheetGeneratorDialog(
+        songTitle = songTitle,
+        artistName = artistName,
+        initialSplits = splits,
+        onSaveSplits = onSaveSplits,
+        onDismiss = onDismiss
+    )
 }

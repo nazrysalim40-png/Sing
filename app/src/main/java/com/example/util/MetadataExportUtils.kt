@@ -149,7 +149,12 @@ object MetadataExportUtils {
             "• 100% Owned by Primary Artist / Unassigned"
         } else {
             splits.joinToString("\n") {
-                "• ${it.contributorName} (${it.role}): ${it.percentage}% | PRO: ${it.proAffiliation.ifBlank { "N/A" }} (IPI #${it.ipiNumber.ifBlank { "N/A" }})"
+                val contactInfo = buildList {
+                    if (it.email.isNotBlank()) add("Email: ${it.email}")
+                    if (it.phone.isNotBlank()) add("Phone: ${it.phone}")
+                }.joinToString(", ")
+                val contactSuffix = if (contactInfo.isNotBlank()) " | $contactInfo" else ""
+                "• ${it.contributorName} (${it.role}): ${it.percentage}% | PRO: ${it.proAffiliation.ifBlank { "N/A" }} (IPI #${it.ipiNumber.ifBlank { "N/A" }})$contactSuffix"
             }
         }
 
@@ -177,6 +182,80 @@ $splitsText
 
 ${if (pitchBlurb.isNotBlank()) "📝 DSP PLAYLIST PITCH BLURB:\n\"$pitchBlurb\"\n\n" else ""}${if (preSaveUrl.isNotBlank()) "🔗 PRE-SAVE LINK:\n$preSaveUrl\n\n" else ""}═══════════════════════════════════════════════
 Generated via Song Release Hub for DSP Delivery
+""".trimIndent()
+    }
+
+    /**
+     * Generates a dedicated, legal-grade Song Split Sheet agreement and organized breakdown document.
+     */
+    fun generateSplitSheetDocument(
+        songTitle: String,
+        artistName: String,
+        splits: List<SongWriterSplit>,
+        creationDateMillis: Long = System.currentTimeMillis()
+    ): String {
+        val dateStr = displayDateFormatter.format(Date(creationDateMillis))
+        val totalPercentage = splits.sumOf { it.percentage }
+
+        val collaboratorsBreakdown = if (splits.isEmpty()) {
+            "  (No collaborators recorded — 100% owned by Primary Artist)\n"
+        } else {
+            splits.mapIndexed { index, split ->
+                val num = index + 1
+                val emailLine = if (split.email.isNotBlank()) "   • Email: ${split.email}\n" else ""
+                val phoneLine = if (split.phone.isNotBlank()) "   • Phone: ${split.phone}\n" else ""
+                val proLine = "   • PRO: ${split.proAffiliation.ifBlank { "Unassigned" }}" +
+                        if (split.ipiNumber.isNotBlank()) " (IPI #${split.ipiNumber})" else ""
+                val pubLine = if (split.publisher.isNotBlank()) "\n   • Publisher: ${split.publisher}" else ""
+
+                """
+$num. ${split.contributorName}
+   • Role: ${split.role}
+   • Ownership / Royalties: ${"%.1f".format(split.percentage)}%
+$emailLine$phoneLine$proLine$pubLine
+""".trimIndent()
+            }.joinToString("\n\n")
+        }
+
+        val signatureBlocks = splits.joinToString("\n\n") { split ->
+            """
+Signature: ___________________________________
+Collaborator: ${split.contributorName} (${split.role})
+Share: ${"%.1f".format(split.percentage)}%
+Date: ________________________
+""".trimIndent()
+        }
+
+        return """
+================================================================================
+                    MUSIC WORK SONGWRITER SPLIT SHEET AGREEMENT
+================================================================================
+TRACK TITLE: $songTitle
+RECORDING ARTIST: $artistName
+DATE OF AGREEMENT: $dateStr
+TOTAL RECORDED ALLOCATION: ${"%.1f".format(totalPercentage)}%
+
+--------------------------------------------------------------------------------
+1. COLLABORATORS & OWNERSHIP BREAKDOWN
+--------------------------------------------------------------------------------
+$collaboratorsBreakdown
+
+--------------------------------------------------------------------------------
+2. TERMS & ACKNOWLEDGEMENT
+--------------------------------------------------------------------------------
+The undersigned parties hereby certify and agree that the percentages set forth 
+above represent their entire and agreed-upon ownership, songwriting, musical 
+composition, and publishing interests in the musical work referenced above. 
+Each party warrants that their respective contributions are original.
+
+--------------------------------------------------------------------------------
+3. SIGNATURES & EXECUTION
+--------------------------------------------------------------------------------
+$signatureBlocks
+
+================================================================================
+Generated with Song Release Hub Split Sheet Generator
+================================================================================
 """.trimIndent()
     }
 

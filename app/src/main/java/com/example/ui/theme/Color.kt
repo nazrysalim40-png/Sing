@@ -1,33 +1,109 @@
 package com.example.ui.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Studio Dark Theme Palette
-val StudioBackground = Color(0xFF0B0A13)
-val StudioSurface = Color(0xFF141224)
-val StudioSurfaceCard = Color(0xFF1D1932)
-val StudioSurfaceHover = Color(0xFF262142)
-val StudioBorder = Color(0xFF322C54)
+// ==========================================
+// ORANGE & WHITE THEME PALETTE
+// ==========================================
 
-// Brand Vibrant Accents
-val ElectricViolet = Color(0xFF9D64FF)
-val ElectricVioletDark = Color(0xFF6B2FD6)
-val ElectricVioletLight = Color(0xFFC4A2FF)
+// Orange Primary Brand Accents
+val BrandOrange = Color(0xFFFF6600)
+val BrandOrangeDark = Color(0xFFE65100)
+val BrandOrangeLight = Color(0xFFFF9800)
+val BrandSunsetAmber = Color(0xFFFFA000)
+val BrandSunsetRed = Color(0xFFFF3D00)
+val PureWhite = Color(0xFFFFFFFF)
 
-val HyperCyan = Color(0xFF00E5FF)
-val HyperCyanDark = Color(0xFF009AB3)
-val HyperCyanMuted = Color(0x3300E5FF)
+// Backwards-compatible Brand Tokens mapped to Orange & White aesthetic
+val ElectricViolet = BrandOrange
+val ElectricVioletDark = BrandOrangeDark
+val ElectricVioletLight = BrandOrangeLight
 
-val NeonPink = Color(0xFFFF2E93)
-val NeonPinkMuted = Color(0x33FF2E93)
+val HyperCyan = BrandSunsetAmber
+val HyperCyanDark = Color(0xFFCC7000)
+val HyperCyanMuted = Color(0x33FF9800)
 
-val MintGreen = Color(0xFF00E676)
-val MintGreenDark = Color(0xFF008F47)
-val MintGreenMuted = Color(0x3300E676)
+val NeonPink = BrandSunsetRed
+val NeonPinkMuted = Color(0x33FF3D00)
 
-val AmberWarning = Color(0xFFFFB300)
-val AmberWarningMuted = Color(0x33FFB300)
+val MintGreen = Color(0xFF00C853)
+val MintGreenDark = Color(0xFF009624)
+val MintGreenMuted = Color(0x3300C853)
 
-val TextPrimary = Color(0xFFF6F5FD)
-val TextSecondary = Color(0xFFA59FB9)
-val TextMuted = Color(0xFF726C88)
+val AmberWarning = Color(0xFFFF9100)
+val AmberWarningMuted = Color(0x33FF9100)
+
+// Sunburst & Sunset Accents
+val SunburstAmber = Color(0xFFFF9100)
+val SoftSunrisePink = Color(0xFFFF7043)
+val SkyGlowCyan = Color(0xFFFFAB40)
+
+// Studio Dark Theme Palette (Orange & White on Deep Warm Canvas)
+val StudioBackground = Color(0xFF0E0B08)
+val StudioSurface = Color(0xFF18130E)
+val StudioSurfaceCard = Color(0xFF221A14)
+val StudioSurfaceHover = Color(0xFF2E241B)
+val StudioBorder = Color(0xFF453426)
+val TextPrimary = Color(0xFFFFFFFF)
+val TextSecondary = Color(0xFFFFDFC7)
+val TextMuted = Color(0xFFA69282)
+
+// Studio Light Theme Palette (Crisp Pure White & Radiant Orange)
+val LightStudioBackground = Color(0xFFFAF9F6)
+val LightStudioSurface = Color(0xFFFFFFFF)
+val LightStudioSurfaceCard = Color(0xFFFFFFFF)
+val LightStudioSurfaceHover = Color(0xFFFFF3E6)
+val LightStudioBorder = Color(0xFFFFDEC0)
+val LightTextPrimary = Color(0xFF1A120B)
+val LightTextSecondary = Color(0xFF665547)
+val LightTextMuted = Color(0xFF998677)
+
+@Immutable
+data class StudioColors(
+    val background: Color,
+    val surface: Color,
+    val surfaceCard: Color,
+    val surfaceHover: Color,
+    val border: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val textMuted: Color,
+    val isLight: Boolean
+)
+
+val DarkStudioColors = StudioColors(
+    background = StudioBackground,
+    surface = StudioSurface,
+    surfaceCard = StudioSurfaceCard,
+    surfaceHover = StudioSurfaceHover,
+    border = StudioBorder,
+    textPrimary = TextPrimary,
+    textSecondary = TextSecondary,
+    textMuted = TextMuted,
+    isLight = false
+)
+
+val LightStudioColors = StudioColors(
+    background = LightStudioBackground,
+    surface = LightStudioSurface,
+    surfaceCard = LightStudioSurfaceCard,
+    surfaceHover = LightStudioSurfaceHover,
+    border = LightStudioBorder,
+    textPrimary = LightTextPrimary,
+    textSecondary = LightTextSecondary,
+    textMuted = LightTextMuted,
+    isLight = true
+)
+
+val LocalStudioColors = staticCompositionLocalOf { LightStudioColors }
+
+object AppTheme {
+    val colors: StudioColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalStudioColors.current
+}

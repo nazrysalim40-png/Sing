@@ -94,6 +94,7 @@ fun ReleaseCountdownCard(
     val coverArtRes = when (release.coverArtPreset) {
         "acoustic" -> R.drawable.img_release_cover_acoustic
         "studio" -> R.drawable.img_studio_hero
+        "light" -> R.drawable.img_release_cover_light
         else -> R.drawable.img_release_cover_neon
     }
 

@@ -62,6 +62,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.data.model.ChecklistCategory
 import com.example.data.model.ReleaseChecklistItem
 import com.example.data.model.SongRelease
+import com.example.ui.components.ReleaseStagesProgressTracker
 import com.example.ui.theme.ElectricViolet
 import com.example.ui.theme.HyperCyan
 import com.example.ui.theme.MintGreen
@@ -149,6 +150,16 @@ fun ChecklistScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Visual Stages Progress Tracker (Chart & Pipeline)
+                ReleaseStagesProgressTracker(
+                    release = currentRelease,
+                    checklist = checklist,
+                    onToggleTask = { task -> viewModel.toggleChecklistItem(task) },
+                    onNavigateToChecklist = { /* Already on Checklist */ }
+                )
 
                 Spacer(modifier = Modifier.height(14.dp))
 

@@ -5,21 +5,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
+// Orange & White Dark Scheme (Pure White Text & Orange Accents on Deep Charcoal)
 private val DarkColorScheme = darkColorScheme(
-    primary = ElectricViolet,
+    primary = BrandOrange,
     onPrimary = Color.White,
     primaryContainer = StudioSurfaceCard,
-    onPrimaryContainer = ElectricVioletLight,
-    secondary = HyperCyan,
+    onPrimaryContainer = BrandOrangeLight,
+    secondary = BrandSunsetAmber,
     onSecondary = Color.Black,
     secondaryContainer = StudioSurfaceHover,
-    onSecondaryContainer = HyperCyan,
-    tertiary = NeonPink,
+    onSecondaryContainer = BrandOrangeLight,
+    tertiary = BrandSunsetRed,
     onTertiary = Color.White,
     tertiaryContainer = StudioSurfaceCard,
-    onTertiaryContainer = NeonPink,
+    onTertiaryContainer = BrandSunsetRed,
     background = StudioBackground,
     onBackground = TextPrimary,
     surface = StudioSurface,
@@ -30,8 +32,29 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = StudioBorder
 )
 
-// A dark studio vibe is preferred for music production and song releasing
-private val LightColorScheme = DarkColorScheme
+// Crisp Orange & Pure White Light Scheme
+private val LightColorScheme = lightColorScheme(
+    primary = BrandOrange,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFEDE0),
+    onPrimaryContainer = BrandOrangeDark,
+    secondary = BrandSunsetAmber,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFF3E0),
+    onSecondaryContainer = BrandOrangeDark,
+    tertiary = BrandSunsetRed,
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFEBE6),
+    onTertiaryContainer = BrandSunsetRed,
+    background = LightStudioBackground,
+    onBackground = LightTextPrimary,
+    surface = LightStudioSurface,
+    onSurface = LightTextPrimary,
+    surfaceVariant = LightStudioSurfaceHover,
+    onSurfaceVariant = LightTextSecondary,
+    outline = LightStudioBorder,
+    outlineVariant = LightStudioBorder
+)
 
 @Composable
 fun MyApplicationTheme(
@@ -39,9 +62,16 @@ fun MyApplicationTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = DarkColorScheme,
-        typography = Typography,
-        content = content
-    )
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val studioColors = if (darkTheme) DarkStudioColors else LightStudioColors
+
+    CompositionLocalProvider(
+        LocalStudioColors provides studioColors
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

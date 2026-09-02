@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.Share
 import com.example.data.model.SongRelease
 import com.example.data.model.SongWriterSplit
 import com.example.ui.components.ExportMetadataDialog
+import com.example.ui.components.GenreMultiSelectChips
 import com.example.ui.components.SongSplitSheetForm
 import com.example.ui.components.SplitSheetEditorDialog
 import com.example.ui.components.TrackMetadataForm
@@ -94,6 +95,9 @@ fun MetadataAndSplitsScreen(
     var title by remember(currentRelease) { mutableStateOf(currentRelease.title) }
     var artist by remember(currentRelease) { mutableStateOf(currentRelease.artistName) }
     var featured by remember(currentRelease) { mutableStateOf(currentRelease.featuredArtists) }
+    var selectedGenres by remember(currentRelease) {
+        mutableStateOf(currentRelease.genreList.toSet().ifEmpty { setOf("Pop") })
+    }
     var genre by remember(currentRelease) { mutableStateOf(currentRelease.genre) }
     var subGenre by remember(currentRelease) { mutableStateOf(currentRelease.subGenre) }
     var bpmText by remember(currentRelease) { mutableStateOf(currentRelease.bpm.toString()) }
@@ -138,6 +142,8 @@ fun MetadataAndSplitsScreen(
 
     if (showSplitSheetDialog) {
         SplitSheetEditorDialog(
+            songTitle = title,
+            artistName = artist,
             splits = splits,
             onSaveSplits = { updatedSplits ->
                 viewModel.saveSplitSheet(updatedSplits)
@@ -205,11 +211,16 @@ fun MetadataAndSplitsScreen(
                     Button(
                         onClick = {
                             val bpmVal = bpmText.toIntOrNull() ?: 120
+                            val finalGenre = if (selectedGenres.isNotEmpty()) {
+                                selectedGenres.joinToString(", ")
+                            } else {
+                                genre.ifBlank { "Pop" }
+                            }
                             viewModel.updateReleaseMetadata(
                                 title = title,
                                 artistName = artist,
                                 featuredArtists = featured,
-                                genre = genre,
+                                genre = finalGenre,
                                 subGenre = subGenre,
                                 bpm = bpmVal,
                                 musicalKey = musicalKey,
@@ -286,6 +297,8 @@ fun MetadataAndSplitsScreen(
         // 1. Songwriter Split Sheet Data Entry Form
         item {
             SongSplitSheetForm(
+                songTitle = title,
+                artistName = artist,
                 initialSplits = splits,
                 onSaveSplits = { updatedSplits ->
                     viewModel.saveSplitSheet(updatedSplits)
@@ -365,40 +378,32 @@ fun MetadataAndSplitsScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = genre,
-                            onValueChange = { genre = it },
-                            label = { Text("Primary Genre") },
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ElectricViolet,
-                                unfocusedBorderColor = StudioBorder,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
+                    // Multi-Select Genre Chips
+                    GenreMultiSelectChips(
+                        selectedGenres = selectedGenres,
+                        onGenresChanged = { selectedGenres = it },
+                        title = "Categorized Genres & Tags",
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                        OutlinedTextField(
-                            value = subGenre,
-                            onValueChange = { subGenre = it },
-                            label = { Text("Sub-Genre") },
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = ElectricViolet,
-                                unfocusedBorderColor = StudioBorder,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
-                            ),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = subGenre,
+                        onValueChange = { subGenre = it },
+                        label = { Text("Sub-Genre / Style") },
+                        placeholder = { Text("e.g. Synthwave, Hyperpop, Dream Pop") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = ElectricViolet,
+                            unfocusedBorderColor = StudioBorder,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 

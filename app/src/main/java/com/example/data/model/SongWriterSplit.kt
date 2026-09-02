@@ -13,5 +13,13 @@ data class SongWriterSplit(
     val percentage: Double, // e.g. 50.0
     val proAffiliation: String = "ASCAP", // "ASCAP", "BMI", "PRS", "SOCAN", "None"
     val ipiNumber: String = "",
-    val publisher: String = ""
-)
+    val publisher: String = "",
+    val email: String = "",
+    val phone: String = ""
+) {
+    val formattedPercentage: String
+        get() = "%.1f".format(percentage)
+
+    val hasContactDetails: Boolean
+        get() = email.isNotBlank() || phone.isNotBlank()
+}

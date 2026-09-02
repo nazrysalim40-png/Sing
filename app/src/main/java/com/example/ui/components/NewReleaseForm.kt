@@ -149,7 +149,7 @@ fun NewReleaseForm(
     var distributionDateMillis by remember { mutableLongStateOf(defaultReleaseTime) }
 
     // Detailed Music Metadata
-    var genre by remember { mutableStateOf("Pop") }
+    var selectedGenres by remember { mutableStateOf(setOf("Pop")) }
     var subGenre by remember { mutableStateOf("Synthpop") }
     var bpmText by remember { mutableStateOf("124") }
     var musicalKey by remember { mutableStateOf("F# Minor") }
@@ -507,65 +507,45 @@ fun NewReleaseForm(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // SECTION 3: Distributor & Genre
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = distributor,
-                    onValueChange = { distributor = it },
-                    label = { Text("Distributor") },
-                    placeholder = { Text("DistroKid / TuneCore") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Public,
-                            contentDescription = null,
-                            tint = HyperCyan,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = HyperCyan,
-                        unfocusedBorderColor = StudioBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedContainerColor = StudioSurfaceHover,
-                        unfocusedContainerColor = StudioSurfaceHover
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("input_distributor")
-                )
+            // SECTION 3: Distributor & Multi-Select Genre
+            OutlinedTextField(
+                value = distributor,
+                onValueChange = { distributor = it },
+                label = { Text("Digital Distributor") },
+                placeholder = { Text("DistroKid / TuneCore / CD Baby") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = null,
+                        tint = HyperCyan,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = HyperCyan,
+                    unfocusedBorderColor = StudioBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedContainerColor = StudioSurfaceHover,
+                    unfocusedContainerColor = StudioSurfaceHover
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("input_distributor")
+            )
 
-                OutlinedTextField(
-                    value = genre,
-                    onValueChange = { genre = it },
-                    label = { Text("Genre") },
-                    placeholder = { Text("Pop / Synth") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.LibraryMusic,
-                            contentDescription = null,
-                            tint = HyperCyan,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = HyperCyan,
-                        unfocusedBorderColor = StudioBorder,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedContainerColor = StudioSurfaceHover,
-                        unfocusedContainerColor = StudioSurfaceHover
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("input_genre")
-                )
-            }
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Multi-Select Genre Chip UI Component
+            GenreMultiSelectChips(
+                selectedGenres = selectedGenres,
+                onGenresChanged = { selectedGenres = it },
+                title = "Release Genre Categorization",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("input_genre")
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -676,6 +656,7 @@ fun NewReleaseForm(
                         val presets = listOf(
                             Triple("neon", R.drawable.img_release_cover_neon, "Neon Synth"),
                             Triple("acoustic", R.drawable.img_release_cover_acoustic, "Warm Folk"),
+                            Triple("light", R.drawable.img_release_cover_light, "Light Mood"),
                             Triple("studio", R.drawable.img_studio_hero, "Studio Pro")
                         )
 
@@ -745,11 +726,16 @@ fun NewReleaseForm(
                 onClick = {
                     if (isFormValid) {
                         val bpmVal = bpmText.toIntOrNull() ?: 120
+                        val finalGenre = if (selectedGenres.isNotEmpty()) {
+                            selectedGenres.joinToString(", ")
+                        } else {
+                            "Pop"
+                        }
                         onSaveRelease(
                             title.trim(),
                             artist.trim(),
                             featured.trim(),
-                            genre.trim(),
+                            finalGenre,
                             subGenre.trim(),
                             distributionDateMillis,
                             bpmVal,
