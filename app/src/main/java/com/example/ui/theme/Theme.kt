@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
-// Orange & White Dark Scheme (Pure White Text & Orange Accents on Deep Charcoal)
+// Orange & White Dark Scheme on Midnight Blue Background
 private val DarkColorScheme = darkColorScheme(
     primary = BrandOrange,
     onPrimary = Color.White,
@@ -32,15 +32,15 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = StudioBorder
 )
 
-// Crisp Orange & Pure White Light Scheme
+// Crisp Orange & Pure White Scheme on Luminous Azure/Ice Blue Background
 private val LightColorScheme = lightColorScheme(
     primary = BrandOrange,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFFFEDE0),
+    primaryContainer = Color(0xFFD6E8FB),
     onPrimaryContainer = BrandOrangeDark,
     secondary = BrandSunsetAmber,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFF3E0),
+    secondaryContainer = Color(0xFFE2EFFD),
     onSecondaryContainer = BrandOrangeDark,
     tertiary = BrandSunsetRed,
     onTertiary = Color.White,
